@@ -1,0 +1,11 @@
+{
+  "name": "carmelite-iwd-standalone",
+  "version": "2.0.0",
+  "description": "Single-file IWD Archive",
+  "scripts": {
+    "start": "vite"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+}
