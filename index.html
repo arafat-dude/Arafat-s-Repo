@@ -12,10 +12,10 @@
                 extend: {
                     colors: {
                         brown: { DEFAULT: '#5e3b1f', soft: '#8c6b4a', light: '#dccfc2' },
-                        cream: '#f9f4d2', vellum: '#fdfcf4', ink: '#1a1a1a', paper: '#ffffff'
+                        cream: '#f9f4d2', vellum: '#fdfcf4', ink: '#1a1a1a'
                     },
                     fontFamily: { serif: ['Playfair Display', 'serif'], sans: ['Inter', 'sans-serif'] },
-                    boxShadow: { 'soft': '0 4px 20px -2px rgba(94, 59, 31, 0.1)' }
+                    boxShadow: { 'soft': '0 10px 40px -10px rgba(94, 59, 31, 0.12)' }
                 }
             }
         }
@@ -26,16 +26,16 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Playfair+Display:wght@700;900&display=swap" rel="stylesheet">
 
     <style>
         body { background-color: #fdfcf4; color: #1a1a1a; -webkit-tap-highlight-color: transparent; }
-        /* Hide scrollbar for clean UI */
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
         .hero-gradient { background: linear-gradient(135deg, #5e3b1f 0%, #3d2614 100%); }
-        @keyframes fadeUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+        .nav-glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
         .animate-enter { animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .spinner { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
     </style>
 </head>
 <body>
@@ -44,208 +44,170 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
 
-        // Default data in case GitHub API fetch fails or is loading
-        const FALLBACK_DATA = {
-            theme: "Invest in women: Accelerate progress",
-            heroines: [
-                { name: "Mama Samia", tag: "Governance", bio: "The first female President of Tanzania, inspiring millions." },
-                { name: "Gertrude Mongella", tag: "Diplomacy", bio: "Renowned 'Mama Beijing', led the 4th World Conference on Women." }
-            ]
-        };
-
         const App = () => {
             const [activeTab, setActiveTab] = useState('HOME');
-            const [archiveData, setArchiveData] = useState(null);
+            const [vaultData, setVaultData] = useState({ theme: "Loading...", heroines: [] });
             const [query, setQuery] = useState('');
-            const [oracleResponse, setOracleResponse] = useState('The Archive awaits your question...');
+            const [oracleOutput, setOracleOutput] = useState('The Archive Oracle is ready. Ask about the heroines.');
             const [loadingOracle, setLoadingOracle] = useState(false);
+            const [booting, setBooting] = useState(true);
 
-            // ⚡ GITHUB API FETCH ⚡
+            // ⚡ GITHUB API: CONNECT TO THE SOURCE ⚡
             useEffect(() => {
-                fetch('https://raw.githubusercontent.com/arafat-dude/Arafat-s-Repo/main/archive.json')
-                    .then(res => {
-                        if (!res.ok) throw new Error("File not found");
-                        return res.json();
-                    })
-                    .then(data => setArchiveData(data))
-                    .catch(err => {
-                        console.log("Using fallback data (GitHub file might be missing):", err);
-                        setArchiveData(FALLBACK_DATA);
-                    });
+                const initVault = async () => {
+                    try {
+                        const res = await fetch('https://raw.githubusercontent.com/arafat-dude/Arafat-s-Repo/main/archive.json');
+                        const json = await res.json();
+                        setVaultData(json);
+                    } catch (err) {
+                        console.error("GitHub Vault Error", err);
+                    } finally {
+                        setBooting(false);
+                    }
+                };
+                initVault();
             }, []);
 
-            const displayData = archiveData || FALLBACK_DATA;
-
-            // ⚡ ORACLE LOGIC ⚡
-            const askOracle = async () => {
+            // 🧠 AI ENGINE: GITHUB API + GEMINI RAG 🧠
+            const handleOracleAI = async () => {
                 if (!query.trim() || loadingOracle) return;
                 setLoadingOracle(true);
-                setOracleResponse("Consulting the scrolls...");
-                
+                setOracleOutput("Consulting the GitHub Vault and AI scrolls...");
+
                 try {
-                    const API_KEY = "AIzaSyDBpMVOvrMMsrsn7rH4Mt4jdthXZYEap-Q"; 
+                    const knowledge = JSON.stringify(vaultData.heroines);
+                    const API_KEY = "AIzaSyDBpMVOvrMMsrsn7rH4Mt4jdthXZYEap-Q"; // Your Gemini Key
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
-                    const payload = { contents: [{ parts: [{ text: `As the Carmelite Archive Oracle, answer: "${query}". Tone: Wise, brief (max 50 words).` }] }] };
                     
-                    const res = await fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+                    const prompt = `
+                        Role: Carmelite Archive Oracle.
+                        Data: ${knowledge}.
+                        Current IWD Theme: ${vaultData.theme}.
+                        User Question: "${query}".
+                        Instructions: Answer using the provided data. Be wise, encouraging, and mention you are using live data from Arafat's GitHub Repo.
+                    `;
+
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                    });
+
                     const data = await res.json();
-                    setOracleResponse(data.candidates?.[0]?.content?.parts?.[0]?.text || "The Oracle is silent.");
+                    const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                    setOracleOutput(aiText || "The Oracle is meditating. Try again, seeker.");
                 } catch (e) {
-                    setOracleResponse("Connection error.");
+                    setOracleOutput("The connection to the AI vault was interrupted.");
                 } finally {
                     setLoadingOracle(false);
+                    setQuery('');
                 }
             };
 
-            // 📱 Mobile Bottom Nav Component
-            const MobileNav = () => (
-                <div className="fixed bottom-0 left-0 w-full bg-white/95 backdrop-blur-md border-t border-brown/10 pb-safe z-50 md:hidden shadow-[0_-5px_20px_rgba(0,0,0,0.05)]">
-                    <div className="flex justify-around items-center h-16">
-                        {['HOME', 'ORACLE', 'HEROINES'].map((tab) => (
-                            <button 
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`flex flex-col items-center justify-center w-full h-full transition-colors ${activeTab === tab ? 'text-brown' : 'text-gray-400'}`}
-                            >
-                                <span className="material-icons-round text-2xl mb-0.5">
-                                    {tab === 'HOME' ? 'museum' : tab === 'ORACLE' ? 'auto_awesome' : 'diversity_1'}
-                                </span>
-                                <span className="text-[0.6rem] font-bold tracking-widest">{tab}</span>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            );
+            return (
+                <div className="min-h-screen w-full flex flex-col md:flex-row">
+                    
+                    {/* SIDEBAR (Desktop) */}
+                    <aside className="hidden md:flex w-72 bg-white border-r border-brown/5 flex-col fixed h-full z-40">
+                        <div className="p-10 border-b border-brown/5 text-center">
+                            <div className="w-16 h-16 bg-brown text-cream rounded-[1.5rem] flex items-center justify-center mx-auto text-3xl font-serif font-black mb-4 shadow-lg">C</div>
+                            <h1 className="font-extrabold text-brown text-[0.65rem] uppercase tracking-[0.3em]">Carmelite Archive</h1>
+                        </div>
+                        <nav className="flex-1 p-6 space-y-2">
+                            {['HOME', 'ORACLE', 'HEROINES'].map(tab => (
+                                <button key={tab} onClick={() => setActiveTab(tab)} className={`w-full text-left px-6 py-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === tab ? 'bg-brown text-white shadow-soft' : 'text-gray-300 hover:bg-vellum hover:text-brown'}`}>
+                                    <span className="material-icons-round text-xl">{tab === 'HOME' ? 'museum' : tab === 'ORACLE' ? 'auto_awesome' : 'history_edu'}</span>
+                                    <span className="font-bold text-[0.7rem] tracking-widest uppercase">{tab}</span>
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="p-8 border-t border-brown/5 text-center">
+                            <p className="text-[0.55rem] font-black text-brown/20 uppercase tracking-widest">areyousure549 [arafat]</p>
+                        </div>
+                    </aside>
 
-            // 💻 Desktop Sidebar Component
-            const DesktopSidebar = () => (
-                <aside className="hidden md:flex w-72 bg-white border-r border-brown/10 flex-col fixed h-full z-40">
-                    <div className="p-8 text-center border-b border-brown/5">
-                        <div className="w-12 h-12 bg-brown text-cream rounded-full flex items-center justify-center mx-auto text-xl font-serif font-black mb-3">C</div>
-                        <h1 className="font-bold text-brown text-xs uppercase tracking-[0.2em]">Carmelite Archive</h1>
-                    </div>
-                    <nav className="flex-1 p-6 space-y-2">
-                        {['HOME', 'ORACLE', 'HEROINES'].map((tab) => (
-                            <button 
-                                key={tab}
-                                onClick={() => setActiveTab(tab)}
-                                className={`w-full text-left px-5 py-4 rounded-xl flex items-center gap-4 transition-all duration-300 ${activeTab === tab ? 'bg-brown text-white shadow-soft translate-x-1' : 'text-gray-400 hover:bg-vellum hover:text-brown'}`}
-                            >
-                                <span className="material-icons-round">
-                                    {tab === 'HOME' ? 'museum' : tab === 'ORACLE' ? 'auto_awesome' : 'diversity_1'}
-                                </span>
-                                <span className="font-bold text-xs tracking-widest">{tab}</span>
+                    {/* BOTTOM NAV (Mobile) */}
+                    <nav className="md:hidden fixed bottom-0 left-0 w-full h-20 nav-glass border-t border-brown/10 flex justify-around items-center z-50">
+                        {['HOME', 'ORACLE', 'HEROINES'].map(tab => (
+                            <button key={tab} onClick={() => setActiveTab(tab)} className={`flex flex-col items-center gap-1 ${activeTab === tab ? 'text-brown' : 'text-gray-300'}`}>
+                                <span className="material-icons-round text-2xl">{tab === 'HOME' ? 'museum' : tab === 'ORACLE' ? 'auto_awesome' : 'history_edu'}</span>
+                                <span className="text-[0.5rem] font-black uppercase tracking-widest">{tab}</span>
                             </button>
                         ))}
                     </nav>
-                    <div className="p-6 border-t border-brown/5 text-center">
-                         <p className="text-[0.6rem] font-black text-brown/30 uppercase tracking-widest">areyousure549 [arafat]</p>
-                    </div>
-                </aside>
-            );
 
-            return (
-                <div className="min-h-screen w-full font-sans text-ink bg-vellum">
-                    <DesktopSidebar />
-                    
-                    {/* Main Content Area - padded for desktop sidebar and mobile bottom bar */}
-                    <main className="w-full md:pl-72 pb-24 md:pb-12 min-h-screen">
-                        
-                        {/* Mobile Header */}
-                        <header className="md:hidden h-16 flex items-center justify-center bg-vellum/80 backdrop-blur sticky top-0 z-30 border-b border-brown/5">
-                            <span className="font-serif font-bold text-brown text-lg">Carmelite Archive</span>
-                        </header>
-
-                        <div className="p-6 md:p-12 max-w-5xl mx-auto animate-enter">
+                    {/* CONTENT */}
+                    <main className="flex-1 md:ml-72 pb-24 md:pb-0 bg-vellum min-h-screen">
+                        <div className="p-6 md:p-16 max-w-5xl mx-auto animate-enter">
                             
-                            {/* HOME TAB */}
                             {activeTab === 'HOME' && (
-                                <div className="space-y-8">
-                                    <div className="hero-gradient rounded-[2rem] p-8 md:p-16 text-cream shadow-soft relative overflow-hidden">
+                                <div className="space-y-10">
+                                    <div className="hero-gradient rounded-[3rem] p-10 md:p-20 text-cream shadow-2xl relative overflow-hidden">
                                         <div className="relative z-10">
-                                            <span className="inline-block px-3 py-1 border border-cream/20 rounded-full text-[0.6rem] uppercase tracking-widest mb-4">IWD 2026 Theme</span>
-                                            <h2 className="font-serif text-4xl md:text-6xl font-black leading-tight mb-6">Leading<br/>By Truth</h2>
-                                            <p className="text-cream/80 text-lg md:text-xl font-serif italic border-l-2 border-cream/30 pl-4">"{displayData.theme}"</p>
+                                            <span className="inline-block px-4 py-1 bg-white/10 rounded-full text-[0.6rem] font-bold uppercase tracking-[0.2em] mb-8">Live GitHub Data Stream 🛰️</span>
+                                            <h2 className="font-serif text-6xl md:text-8xl font-black leading-none mb-6">Forge<br/>The Future</h2>
+                                            <p className="font-serif italic text-cream/60 text-xl border-l-2 border-cream/20 pl-6">{vaultData.theme}</p>
                                         </div>
-                                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl -mr-20 -mt-20"></div>
+                                        <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-white/5 rounded-full blur-[80px]"></div>
                                     </div>
-                                    
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <div className="bg-white p-6 rounded-2xl border border-brown/5 shadow-sm">
-                                            <div className="text-brown/40 mb-2 material-icons-round">history_edu</div>
-                                            <h3 className="font-serif font-bold text-lg text-brown">History</h3>
-                                            <p className="text-xs text-gray-500 mt-2 leading-relaxed">Preserving the timeline of Tanzanian excellence.</p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-white p-8 rounded-[2.5rem] border border-brown/5 shadow-soft">
+                                            <h4 className="text-[0.6rem] font-black text-brown/30 uppercase tracking-widest mb-2">Vault Status</h4>
+                                            <p className="text-lg font-bold">Arafat-s-Repo Connected ✅</p>
                                         </div>
-                                        <div className="bg-white p-6 rounded-2xl border border-brown/5 shadow-sm">
-                                            <div className="text-brown/40 mb-2 material-icons-round">school</div>
-                                            <h3 className="font-serif font-bold text-lg text-brown">Education</h3>
-                                            <p className="text-xs text-gray-500 mt-2 leading-relaxed">Empowering the next generation of leaders.</p>
-                                        </div>
-                                        <div className="bg-white p-6 rounded-2xl border border-brown/5 shadow-sm">
-                                            <div className="text-brown/40 mb-2 material-icons-round">public</div>
-                                            <h3 className="font-serif font-bold text-lg text-brown">Global</h3>
-                                            <p className="text-xs text-gray-500 mt-2 leading-relaxed">Connecting Carmelite to the world stage.</p>
+                                        <div className="bg-white p-8 rounded-[2.5rem] border border-brown/5 shadow-soft">
+                                            <h4 className="text-[0.6rem] font-black text-brown/30 uppercase tracking-widest mb-2">AI Status</h4>
+                                            <p className="text-lg font-bold">Gemini RAG-Engine Active 🧠</p>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
-                            {/* HEROINES TAB (The Data from GitHub) */}
-                            {activeTab === 'HEROINES' && (
-                                <div>
-                                    <div className="mb-8">
-                                        <h2 className="font-serif text-3xl md:text-5xl font-black text-brown mb-2">The Heroines</h2>
-                                        <p className="text-sm text-gray-400 font-bold uppercase tracking-widest">
-                                            {archiveData ? 'Live from GitHub Archive' : 'Loading Archive...'}
-                                        </p>
+                            {activeTab === 'ORACLE' && (
+                                <div className="max-w-2xl mx-auto py-10 space-y-12">
+                                    <div className="text-center">
+                                        <h2 className="font-serif text-5xl font-black text-brown mb-2 italic">The Oracle</h2>
+                                        <p className="text-[0.6rem] font-black text-gray-400 uppercase tracking-[0.3em]">AI Powered by GitHub</p>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                        {displayData.heroines.map((h, i) => (
-                                            <div key={i} className="bg-white p-8 rounded-[1.5rem] border border-brown/5 shadow-soft hover:-translate-y-1 transition-transform duration-300">
-                                                <span className="inline-block px-3 py-1 bg-brown/5 text-brown rounded-lg text-[0.6rem] font-black uppercase tracking-widest mb-4">{h.tag}</span>
-                                                <h3 className="font-serif text-2xl font-black text-ink mb-3">{h.name}</h3>
-                                                <p className="text-gray-500 text-sm leading-relaxed">{h.bio}</p>
+                                    <div className="bg-white p-3 rounded-[2rem] shadow-2xl border border-brown/5 flex items-center ring-8 ring-brown/5">
+                                        <input 
+                                            className="flex-1 bg-transparent px-6 py-4 outline-none font-semibold text-lg"
+                                            placeholder="Who is Mama Samia?"
+                                            value={query}
+                                            onChange={(e) => setQuery(e.target.value)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleOracleAI()}
+                                        />
+                                        <button onClick={handleOracleAI} className="bg-brown text-white w-14 h-14 rounded-2xl flex items-center justify-center hover:scale-95 transition-all">
+                                            {loadingOracle ? <span className="material-icons-round spinner">sync</span> : <span className="material-icons-round">bolt</span>}
+                                        </button>
+                                    </div>
+                                    <div className="bg-white/40 p-10 rounded-[3rem] border-2 border-white shadow-inner min-h-[200px] flex items-center justify-center text-center">
+                                        <p className="font-serif text-2xl text-brown italic leading-relaxed animate-enter">{oracleOutput}</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'HEROINES' && (
+                                <div className="space-y-12">
+                                    <div className="flex items-center justify-between">
+                                        <h2 className="font-serif text-5xl font-black text-brown">The Vault</h2>
+                                        <span className="text-[0.6rem] font-black bg-brown/5 px-4 py-2 rounded-full uppercase tracking-widest text-brown/40">{vaultData.heroines.length} Entries</span>
+                                    </div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        {vaultData.heroines.map((h, i) => (
+                                            <div key={i} className="bg-white p-12 rounded-[3rem] border border-brown/5 shadow-soft hover:-translate-y-2 transition-all duration-500 group">
+                                                <div className="w-10 h-1 text-brown/10 bg-brown/10 mb-6 group-hover:w-20 transition-all"></div>
+                                                <span className="text-[0.6rem] font-black text-brown/40 uppercase tracking-[0.4em] mb-4 block">{h.tag}</span>
+                                                <h3 className="font-serif text-3xl font-black text-ink mb-6">{h.name}</h3>
+                                                <p className="text-gray-500 leading-relaxed font-medium">{h.bio}</p>
                                             </div>
                                         ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* ORACLE TAB */}
-                            {activeTab === 'ORACLE' && (
-                                <div className="max-w-2xl mx-auto pt-4 md:pt-10">
-                                    <div className="text-center mb-10">
-                                        <div className="w-16 h-16 bg-gradient-to-br from-brown to-ink rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg text-cream material-icons-round text-3xl">auto_awesome</div>
-                                        <h2 className="font-serif text-3xl md:text-4xl font-black text-brown">The Oracle</h2>
-                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-2">Powered by Gemini & areyousure549</p>
-                                    </div>
-
-                                    <div className="bg-white p-2 rounded-3xl shadow-soft border border-brown/5 flex items-center mb-8">
-                                        <input 
-                                            value={query}
-                                            onChange={(e) => setQuery(e.target.value)}
-                                            placeholder="Ask a question..."
-                                            className="flex-1 bg-transparent px-6 py-4 outline-none text-ink placeholder-gray-300 font-medium"
-                                        />
-                                        <button 
-                                            onClick={askOracle}
-                                            disabled={loadingOracle}
-                                            className="bg-brown text-white w-12 h-12 rounded-2xl flex items-center justify-center hover:bg-brown-soft transition-colors disabled:opacity-50"
-                                        >
-                                            {loadingOracle ? <span className="animate-spin material-icons-round text-sm">refresh</span> : <span className="material-icons-round text-sm">arrow_upward</span>}
-                                        </button>
-                                    </div>
-
-                                    <div className="bg-vellum border-2 border-brown/5 p-8 rounded-[2rem] text-center">
-                                        <p className="font-serif text-xl md:text-2xl text-brown italic leading-relaxed opacity-90">{oracleResponse}</p>
-                                    </div>
-                                </div>
-                            )}
-
                         </div>
                     </main>
-
-                    <MobileNav />
                 </div>
             );
         };
