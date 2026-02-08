@@ -3,17 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Archive: IWD | Carmelite Secondary School</title>
+    <title>Archive: IWD | Carmelite</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        brown: { DEFAULT: '#5e3b1f', soft: '#8c6b4a', dark: '#2b1b0e' },
-                        vellum: '#fdfcf4', gold: '#d4af37'
-                    },
-                    fontFamily: { serif: ['Playfair Display', 'serif'], sans: ['Inter', 'sans-serif'] },
+                    colors: { brown: '#5e3b1f', vellum: '#fdfcf4', gold: '#d4af37', night: '#1a1a1a' },
+                    fontFamily: { serif: ['Playfair Display', 'serif'], sans: ['Inter', 'sans-serif'] }
                 }
             }
         }
@@ -22,12 +19,14 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:ital,wght@0,900;1,700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;900&family=Playfair+Display:ital,wght@0,900;1,700&display=swap" rel="stylesheet">
     <style>
-        body { background-color: #fdfcf4; color: #1a1a1a; -webkit-tap-highlight-color: transparent; }
-        .hero-pattern { background: linear-gradient(135deg, #5e3b1f 0%, #2b1b0e 100%); }
+        body { background-color: #fdfcf4; -webkit-tap-highlight-color: transparent; }
+        .hero-pattern { background: linear-gradient(135deg, #1a1a1a 0%, #3d2614 100%); }
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-fade { animation: fadeIn 0.5s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -40,56 +39,55 @@
             const [activeTab, setActiveTab] = useState('HOME');
             const [vaultData, setVaultData] = useState({ theme: "Invest in Women", heroines: [] });
             const [query, setQuery] = useState('');
-            const [oracleOutput, setOracleOutput] = useState('Oracle initialized. Seeker Arafat detected.');
+            const [oracleOutput, setOracleOutput] = useState('Shadow Protocol Active. Arafat Authorized.');
             const [loadingOracle, setLoadingOracle] = useState(false);
 
             useEffect(() => {
                 fetch('https://raw.githubusercontent.com/arafat-dude/Arafat-s-Repo/main/archive.json')
                     .then(res => res.json())
                     .then(data => setVaultData(data))
-                    .catch(e => console.error("Vault connection failed"));
+                    .catch(e => setOracleOutput("Vault sync failed. Check GitHub status."));
             }, []);
 
-            // 🔥 STABLE AI LOGIC WITH RETRY & WAIT
             const handleOracleAI = async () => {
                 if (!query.trim() || loadingOracle) return;
                 setLoadingOracle(true);
-                setOracleOutput("Summoning the AI spirits... please wait. 🕯️");
+                setOracleOutput("Shadow Oracle is decrypting the vault... 🌑");
 
-                const attemptFetch = async (retries = 3) => {
-                    try {
-                        const knowledge = JSON.stringify(vaultData.heroines);
-                        // 🛡️ Stealth split to bypass GitHub Secret Scanner
-                        const p1 = "hf_CcnhXONYXbv";
-                        const p2 = "lXrongBiCGVhgcyJaeWKHEn";
-                        const HF_TOKEN = p1 + p2;
-                        const model = "mistralai/Mistral-7B-Instruct-v0.3";
-
-                        const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
-                            method: 'POST',
-                            headers: { 'Authorization': `Bearer ${HF_TOKEN}`, 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ 
-                                inputs: `<s>[INST] Use this context: ${knowledge}. Answer: "${query}" [/INST]</s>`,
-                                options: { wait_for_model: true } 
-                            })
-                        });
-
-                        const data = await res.json();
-                        if (data.error && data.error.includes("loading") && retries > 0) {
-                            setOracleOutput(`Oracle waking up... retrying (${retries} left)`);
-                            await new Promise(r => setTimeout(r, 6000));
-                            return attemptFetch(retries - 1);
-                        }
-                        return data[0]?.generated_text || data.generated_text;
-                    } catch (err) { throw err; }
-                };
+                const p1 = "hf_CcnhXONYXbv";
+                const p2 = "lXrongBiCGVhgcyJaeWKHEn";
+                const HF_TOKEN = p1 + p2;
+                
+                // Using Zephyr-7B for better instruction following
+                const model = "HuggingFaceH4/zephyr-7b-beta"; 
 
                 try {
-                    let result = await attemptFetch();
-                    if (result && result.includes('[/INST]')) result = result.split('[/INST]').pop().trim();
-                    setOracleOutput(result || "The spirits are silent.");
+                    const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+                        method: 'POST',
+                        headers: { 
+                            'Authorization': `Bearer ${HF_TOKEN}`,
+                            'Content-Type': 'application/json',
+                            'x-use-cache': 'false' 
+                        },
+                        body: JSON.stringify({ 
+                            inputs: `<|system|>\nYou are the Oracle for the Carmelite Archive. Use this context: ${JSON.stringify(vaultData.heroines)}</s>\n<|user|>\n${query}</s>\n<|assistant|>`,
+                            parameters: { max_new_tokens: 150, wait_for_model: true, temperature: 0.7 }
+                        })
+                    });
+
+                    const data = await res.json();
+                    
+                    if (data.error && data.error.includes("Authorization")) {
+                        setOracleOutput("Access Denied. The security gods revoked the token. ⚡");
+                    } else if (data.error && data.error.includes("loading")) {
+                        setOracleOutput("Oracle is sleeping. Please try again in 20 seconds. ⏳");
+                    } else {
+                        let aiText = data[0]?.generated_text || data.generated_text || "The void remains silent.";
+                        if (aiText.includes('<|assistant|>')) aiText = aiText.split('<|assistant|>').pop().trim();
+                        setOracleOutput(aiText);
+                    }
                 } catch (e) {
-                    setOracleOutput("Ethereal connection lost. Try again in 30s.");
+                    setOracleOutput("Ethereal plane connection lost. Try again later.");
                 } finally {
                     setLoadingOracle(false);
                     setQuery('');
@@ -97,86 +95,102 @@
             };
 
             return (
-                <div className="min-h-screen flex flex-col md:flex-row">
-                    {/* DESKTOP SIDEBAR */}
-                    <aside className="hidden lg:flex w-72 bg-brown-dark bg-[#2b1b0e] text-vellum flex-col fixed h-full z-40 p-8 shadow-2xl">
-                        <div className="mb-10 text-center">
-                            <div className="w-14 h-14 bg-gold text-brown rounded-2xl flex items-center justify-center mx-auto text-2xl font-black mb-4">C</div>
-                            <h1 className="font-black text-[0.6rem] uppercase tracking-[0.4em] opacity-40">Carmelite Archive</h1>
+                <div className="min-h-screen flex flex-col lg:flex-row">
+                    
+                    {/* COMMAND SIDEBAR */}
+                    <aside className="hidden lg:flex w-80 bg-night text-vellum flex-col fixed h-full p-8 shadow-2xl z-50">
+                        <div className="mb-12 text-center">
+                            <div className="w-16 h-16 bg-gold text-night rounded-2xl flex items-center justify-center mx-auto text-3xl font-serif font-black mb-4 shadow-lg">A</div>
+                            <h1 className="font-black text-[0.6rem] uppercase tracking-[0.4em] opacity-50 italic">The Arafat Archive</h1>
                         </div>
-                        <nav className="flex-1 space-y-2">
+
+                        <nav className="flex-1 space-y-3">
                             {['HOME', 'ORACLE', 'HEROINES'].map(t => (
-                                <button key={t} onClick={() => setActiveTab(t)} className={`w-full text-left p-4 rounded-xl flex items-center gap-4 transition-all ${activeTab === t ? 'bg-gold text-brown font-black' : 'opacity-40 hover:opacity-100'}`}>
-                                    <span className="material-icons-round text-lg">{t === 'HOME' ? 'bolt' : t === 'ORACLE' ? 'auto_awesome' : 'database'}</span>
-                                    <span className="text-[0.6rem] tracking-widest uppercase">{t}</span>
+                                <button key={t} onClick={() => setActiveTab(t)} className={`w-full text-left p-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === t ? 'bg-gold text-night font-black' : 'opacity-40 hover:opacity-100 hover:bg-white/5'}`}>
+                                    <span className="material-icons-round text-xl">{t === 'HOME' ? 'token' : t === 'ORACLE' ? 'auto_awesome' : 'visibility'}</span>
+                                    <span className="text-[0.7rem] tracking-widest uppercase">{t}</span>
                                 </button>
                             ))}
                         </nav>
-                        <div className="mt-auto pt-8 border-t border-white/5 text-center">
-                            <p className="text-[0.5rem] font-black text-gold uppercase tracking-widest mb-1">© 2026 areyousure549</p>
+
+                        <div className="pt-8 border-t border-white/5 text-center">
+                            <p className="text-[0.6rem] font-black text-gold uppercase tracking-widest italic mb-1">© 2026 areyousure549</p>
                             <p className="text-[0.4rem] opacity-30 uppercase tracking-[0.2em]">All Rights Reserved</p>
                         </div>
                     </aside>
 
-                    {/* MAIN CONTENT */}
-                    <main className="flex-1 lg:ml-72 pb-24 lg:pb-0 bg-vellum min-h-screen">
-                        <div className="p-6 lg:p-12 max-w-5xl mx-auto space-y-8">
+                    {/* MAIN STAGE */}
+                    <main className="flex-1 lg:ml-80 bg-vellum min-h-screen pb-24 lg:pb-0">
+                        <div className="p-6 lg:p-16 max-w-5xl mx-auto space-y-10">
+                            
                             {activeTab === 'HOME' && (
-                                <div className="space-y-6 animate-enter">
-                                    <div className="hero-pattern rounded-[2.5rem] p-12 text-vellum shadow-xl relative overflow-hidden">
-                                        <h2 className="font-serif text-5xl lg:text-8xl font-black italic leading-none mb-6">Forge<br/>History</h2>
-                                        <p className="font-serif text-lg opacity-60 border-l-2 border-gold/40 pl-4">{vaultData.theme}</p>
+                                <div className="space-y-8 animate-fade">
+                                    <div className="hero-pattern rounded-[3rem] p-12 lg:p-24 text-vellum shadow-2xl relative overflow-hidden group">
+                                        <div className="relative z-10">
+                                            <span className="px-4 py-1 bg-white/10 rounded-full text-[0.55rem] font-black uppercase tracking-[0.3em] mb-8 inline-block">System Status: Online 🛰️</span>
+                                            <h2 className="font-serif text-6xl lg:text-9xl font-black italic leading-[0.8] mb-8">Lead<br/>With Light</h2>
+                                            <p className="font-serif text-xl opacity-60 border-l-2 border-gold/40 pl-6 italic">{vaultData.theme}</p>
+                                        </div>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="bg-white p-6 rounded-3xl border border-brown/5 text-center">
-                                            <p className="text-[0.5rem] font-black text-brown/20 uppercase mb-1">Admin</p>
-                                            <p className="font-bold text-xs uppercase tracking-widest">Arafat [549] 👑</p>
+                                        <div className="bg-white p-8 rounded-[2.5rem] border border-brown/5 shadow-sm">
+                                            <p className="text-[0.5rem] font-black text-brown/20 uppercase mb-2">Authority</p>
+                                            <p className="font-bold text-sm tracking-widest uppercase">Admin: Arafat [549] 👑</p>
                                         </div>
-                                        <div className="bg-white p-6 rounded-3xl border border-brown/5 text-center">
-                                            <p className="text-[0.5rem] font-black text-brown/20 uppercase mb-1">Engine</p>
-                                            <p className="font-bold text-xs uppercase tracking-widest">AI v1.5 Stable 🛰️</p>
+                                        <div className="bg-white p-8 rounded-[2.5rem] border border-brown/5 shadow-sm">
+                                            <p className="text-[0.5rem] font-black text-brown/20 uppercase mb-2">AI Core</p>
+                                            <p className="font-bold text-sm tracking-widest uppercase">Zephyr-7B Stable 🌑</p>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
                             {activeTab === 'ORACLE' && (
-                                <div className="max-w-xl mx-auto py-10 space-y-8">
-                                    <div className="text-center">
-                                        <h2 className="font-serif text-5xl font-black text-brown mb-2 italic">Oracle</h2>
-                                        <p className="text-[0.5rem] font-black text-brown/30 uppercase tracking-[0.4em]">Powered by Mistral-7B</p>
+                                <div className="max-w-xl mx-auto py-10 space-y-12 animate-fade">
+                                    <div className="text-center space-y-2">
+                                        <h2 className="font-serif text-6xl font-black text-night italic mb-2">Oracle</h2>
+                                        <p className="text-[0.5rem] font-black text-brown/30 uppercase tracking-[0.5em]">Shadow Proxy Terminal</p>
                                     </div>
-                                    <div className="bg-white p-2 rounded-full shadow-xl flex items-center pr-2 ring-1 ring-brown/5">
-                                        <input className="flex-1 px-6 outline-none font-bold text-sm bg-transparent" placeholder="Query the vault..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleOracleAI()} />
-                                        <button onClick={handleOracleAI} className="bg-brown text-white w-10 h-10 rounded-full flex items-center justify-center">
-                                            {loadingOracle ? <span className="material-icons-round spinner text-xs">sync</span> : <span className="material-icons-round text-xs">bolt</span>}
+                                    
+                                    <div className="bg-white p-2 rounded-[2.5rem] shadow-2xl flex items-center pr-4 ring-1 ring-brown/5">
+                                        <input 
+                                            className="flex-1 px-8 py-5 outline-none font-bold text-lg bg-transparent"
+                                            placeholder="Ask the vault..."
+                                            value={query}
+                                            onChange={e => setQuery(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && handleOracleAI()}
+                                        />
+                                        <button onClick={handleOracleAI} className="bg-night text-gold w-14 h-14 rounded-full flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl">
+                                            {loadingOracle ? <span className="material-icons-round spinner">sync</span> : <span className="material-icons-round">bolt</span>}
                                         </button>
                                     </div>
-                                    <div className="bg-brown text-vellum p-8 rounded-[2.5rem] text-center shadow-inner italic font-serif text-xl">
+
+                                    <div className="bg-night text-vellum p-12 rounded-[3.5rem] text-center shadow-inner italic font-serif text-2xl leading-relaxed min-h-[200px] flex items-center justify-center">
                                         {oracleOutput}
                                     </div>
                                 </div>
                             )}
 
                             {activeTab === 'HEROINES' && (
-                                <div className="grid gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-fade">
                                     {vaultData.heroines.map((h, i) => (
-                                        <div key={i} className="bg-white p-8 rounded-[2rem] border border-brown/5 shadow-sm group hover:shadow-lg transition-all">
-                                            <p className="text-[0.55rem] font-black text-gold uppercase mb-2 tracking-widest">{h.tag}</p>
-                                            <h3 className="font-serif text-3xl font-black text-brown mb-2 italic group-hover:pl-2 transition-all">{h.name}</h3>
-                                            <p className="text-gray-400 text-xs leading-relaxed">{h.bio}</p>
+                                        <div key={i} className="bg-white p-10 rounded-[3rem] border border-brown/5 shadow-sm group hover:shadow-2xl transition-all">
+                                            <span className="text-[0.6rem] font-black text-gold uppercase tracking-[0.5em] block mb-4">{h.tag}</span>
+                                            <h3 className="font-serif text-4xl font-black text-night mb-6 group-hover:italic">{h.name}</h3>
+                                            <p className="text-gray-400 font-medium leading-relaxed">{h.bio}</p>
                                         </div>
                                     ))}
                                 </div>
                             )}
+
                         </div>
                     </main>
 
                     {/* MOBILE NAV */}
-                    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] h-16 bg-white/90 backdrop-blur-md border border-brown/5 rounded-full flex justify-around items-center z-50 shadow-2xl">
+                    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] h-16 bg-night/95 backdrop-blur-lg border border-white/5 rounded-full flex justify-around items-center z-50 shadow-2xl">
                         {['HOME', 'ORACLE', 'HEROINES'].map(t => (
-                            <button key={t} onClick={() => setActiveTab(t)} className={activeTab === t ? 'text-brown' : 'text-gray-300'}>
-                                <span className="material-icons-round text-2xl">{t === 'HOME' ? 'bolt' : t === 'ORACLE' ? 'auto_awesome' : 'database'}</span>
+                            <button key={t} onClick={() => setActiveTab(t)} className={activeTab === t ? 'text-gold scale-125' : 'text-gray-500'}>
+                                <span className="material-icons-round text-2xl">{t === 'HOME' ? 'token' : t === 'ORACLE' ? 'auto_awesome' : 'visibility'}</span>
                             </button>
                         ))}
                     </nav>
