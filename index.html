@@ -6,20 +6,22 @@
     <title>Archive: IWD | Carmelite Secondary School</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "@google/genai": "https://esm.run/@google/genai"
+      }
+    }
+    </script>
     <script>
         tailwind.config = {
             theme: {
                 extend: {
                     colors: {
                         brown: { DEFAULT: '#5e3b1f', soft: '#7a502e' },
-                        cream: '#f9f4d2',
-                        vellum: '#fdfcf4',
-                        ink: '#1a1a1a'
+                        cream: '#f9f4d2', vellum: '#fdfcf4', ink: '#1a1a1a'
                     },
-                    fontFamily: {
-                        serif: ['Playfair Display', 'serif'],
-                        sans: ['Inter', 'sans-serif'],
-                    }
+                    fontFamily: { serif: ['Playfair Display', 'serif'], sans: ['Inter', 'sans-serif'] }
                 }
             }
         }
@@ -42,117 +44,115 @@
     <div id="root"></div>
 
     <script type="text/babel">
+        import { GoogleGenAI } from "@google/genai";
         const { useState } = React;
 
         const IWD_DATA = {
             theme: "Invest in women: Accelerate progress",
-            milestones: [
-                { year: "1908", text: "15,000 women marched in NYC for shorter hours, better pay and voting rights." },
-                { year: "1911", text: "IWD was honored for the first time in Europe, drawing over a million participants." },
-                { year: "1975", text: "The UN officially recognized IWD during International Women's Year." },
-                { year: "2024", text: "The focus is on economic inclusion to accelerate global progress." }
-            ],
             heroines: [
-                { name: "Mama Samia", tag: "Governance", bio: "The first female President of Tanzania, inspiring millions across the continent." },
-                { name: "Gertrude Mongella", tag: "Diplomacy", bio: "Renowned 'Mama Beijing', she led the 4th World Conference on Women." },
-                { name: "Julie Makani", tag: "Science", bio: "A world-leading researcher in hematology and sickle cell disease." },
-                { name: "Faraja Nyalandu", tag: "Innovation", bio: "Social entrepreneur transforming Tanzanian education through digital platforms." }
+                { name: "Mama Samia", tag: "Governance", bio: "The first female President of Tanzania, inspiring millions." },
+                { name: "Gertrude Mongella", tag: "Diplomacy", bio: "Renowned 'Mama Beijing', led the 4th World Conference on Women." },
+                { name: "Julie Makani", tag: "Science", bio: "A world-leading researcher in hematology." }
             ]
         };
 
-        const NAV_ITEMS = [
-            { id: 'HOME', label: 'Home', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
-            { id: 'HISTORY', label: 'Timeline', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
-            { id: 'HEROINES', label: 'Heroines', icon: 'M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z' }
-        ];
-
         const App = () => {
             const [activeRoute, setActiveRoute] = useState('HOME');
+            const [query, setQuery] = useState('');
+            const [response, setResponse] = useState('Seek wisdom from the digital archive...');
+            const [loading, setLoading] = useState(false);
+
+            const handleAskOracle = async () => {
+                if (!query.trim() || loading) return;
+                setLoading(true);
+                setResponse('The Oracle is consulting the digital vellum...');
+                
+                try {
+                    // 🔑 Baked in by areyousure549 🔑
+                    const genAI = new GoogleGenAI("AIzaSyDBpMVOvrMMsrsn7rH4Mt4jdthXZYEap-Q");
+                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+                    
+                    const result = await model.generateContent(`You are the Carmelite Archive Oracle. Answer this: ${query}. Tone: Scholarly, wise, and empowering. Use Tanzanian history context if possible. Max 60 words.`);
+                    const text = await result.response.text();
+                    setResponse(text);
+                } catch (e) {
+                    console.error(e);
+                    setResponse('The connection to the archive flickered. Try again later.');
+                } finally {
+                    setLoading(false);
+                    setQuery('');
+                }
+            };
 
             return (
                 <div className="flex h-screen w-full flex-col md:flex-row overflow-hidden font-sans">
-                    <aside className="w-full md:w-72 bg-white border-r border-brown/10 flex flex-col z-50">
-                        <div className="p-8 text-center border-b border-gray-100 hidden md:block">
-                            <div className="w-12 h-12 border-2 border-brown rounded-full flex items-center justify-center mx-auto mb-3 bg-cream">
-                                <span className="font-serif font-black text-brown text-xl">C</span>
-                            </div>
-                            <h2 className="text-brown font-extrabold text-xs uppercase tracking-[0.2em]">Carmelite</h2>
-                            <p className="text-gray-400 text-[0.6rem] font-bold uppercase tracking-widest mt-1">Digital Archive</p>
+                    <aside className="w-full md:w-64 bg-white border-r border-brown/10 flex flex-col">
+                        <div className="p-6 text-center border-b border-gray-100">
+                            <div className="w-10 h-10 border-2 border-brown rounded-full flex items-center justify-center mx-auto mb-2 bg-cream text-brown font-serif font-black shadow-sm">C</div>
+                            <h2 className="text-brown font-extrabold text-[0.6rem] uppercase tracking-widest">Carmelite Archive</h2>
                         </div>
-                        <nav className="flex-1 p-4 flex md:flex-col justify-around md:justify-start gap-1">
-                            {NAV_ITEMS.map(item => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => setActiveRoute(item.id)}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${activeRoute === item.id ? 'bg-brown text-white shadow-lg' : 'text-gray-400 hover:bg-cream hover:text-brown'}`}
+                        <nav className="flex-1 p-4 flex md:flex-col gap-2">
+                            {['HOME', 'ORACLE', 'HEROINES'].map(id => (
+                                <button 
+                                    key={id} 
+                                    onClick={() => setActiveRoute(id)} 
+                                    className={`px-4 py-3 rounded-xl text-[0.7rem] font-black tracking-widest uppercase transition-all duration-300 ${activeRoute === id ? 'bg-brown text-white shadow-lg translate-x-1' : 'text-gray-400 hover:bg-cream hover:text-brown'}`}
                                 >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d={item.icon}></path>
-                                    </svg>
-                                    <span className="text-xs font-bold uppercase tracking-wider hidden md:block">{item.label}</span>
+                                    {id}
                                 </button>
                             ))}
                         </nav>
-                        <div className="p-4 text-center border-t border-gray-100 hidden md:block">
-                            <p className="text-[0.6rem] font-bold text-gray-400">© Built by areyousure549</p>
-                        </div>
+                        <div className="p-4 text-center border-t border-gray-100 hidden md:block text-[0.5rem] font-black text-gray-300 tracking-[0.2em]">© AREYOUSURE549</div>
                     </aside>
 
-                    <main className="flex-1 flex flex-col min-w-0 bg-vellum relative">
-                        <header className="h-16 md:h-20 px-6 md:px-10 flex items-center justify-between border-b border-brown/5 bg-vellum/80 backdrop-blur-md sticky top-0 z-40">
-                            <h1 className="font-serif text-xl md:text-2xl font-black text-brown">{NAV_ITEMS.find(n => n.id === activeRoute).label}</h1>
-                            <div className="flex items-center gap-3">
-                                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-                                <span className="text-[0.6rem] font-black uppercase text-gray-400 tracking-widest">Archive Online</span>
-                            </div>
-                        </header>
+                    <main className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar bg-vellum">
+                        <div className="max-w-3xl mx-auto animate-fade-in">
+                            {activeRoute === 'HOME' && (
+                                <div className="hero-gradient text-cream p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+                                    <h1 className="font-serif text-5xl md:text-6xl font-black mb-4 leading-none">Leading<br/>By Truth</h1>
+                                    <p className="italic opacity-80 border-l-2 border-cream/30 pl-4 text-lg">{IWD_DATA.theme}</p>
+                                </div>
+                            )}
 
-                        <div className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar">
-                            <div className="max-w-4xl mx-auto animate-fade-in">
-                                {activeRoute === 'HOME' && (
-                                    <>
-                                        <div className="hero-gradient text-cream p-10 md:p-16 rounded-[2rem] shadow-2xl mb-10">
-                                            <h2 className="font-serif text-5xl md:text-7xl font-black leading-[0.9] mb-6">Leading<br/>By Truth</h2>
-                                            <p className="font-serif italic text-lg opacity-80 border-l-2 border-cream/30 pl-6">"{IWD_DATA.theme}"</p>
-                                        </div>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            <div className="bg-white p-8 rounded-3xl border border-brown/5">
-                                                <h3 className="font-serif text-2xl font-bold text-brown mb-4">Our Mission</h3>
-                                                <p className="text-gray-500 leading-relaxed text-sm">To preserve and celebrate the voices of women who have shaped our history.</p>
-                                            </div>
-                                            <div className="bg-cream/50 p-8 rounded-3xl border border-brown/10">
-                                                <h3 className="font-serif text-2xl font-bold text-brown mb-4">Focus 2024</h3>
-                                                <p className="text-brown/70 leading-relaxed text-sm italic">Investing in women is the smartest engine for growth.</p>
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
-
-                                {activeRoute === 'HISTORY' && (
-                                    <div className="space-y-12">
-                                        {IWD_DATA.milestones.map((m, i) => (
-                                            <div key={i} className="flex gap-8 items-start">
-                                                <div className="font-serif text-4xl md:text-6xl font-black text-brown/20 w-32 flex-shrink-0 text-right">{m.year}</div>
-                                                <div className="bg-white p-8 rounded-3xl border-l-4 border-brown shadow-sm flex-1">
-                                                    <p className="text-lg text-ink font-medium leading-relaxed">{m.text}</p>
-                                                </div>
-                                            </div>
-                                        ))}
+                            {activeRoute === 'ORACLE' && (
+                                <div className="space-y-6">
+                                    <div className="border-b border-brown/10 pb-4">
+                                        <h2 className="font-serif text-3xl font-black text-brown">Consult the Oracle</h2>
+                                        <p className="text-xs text-brown/50 font-bold uppercase tracking-widest mt-1">Powered by Gemini AI</p>
                                     </div>
-                                )}
-
-                                {activeRoute === 'HEROINES' && (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {IWD_DATA.heroines.map((h, i) => (
-                                            <div key={i} className="bg-white p-8 rounded-3xl border border-brown/5 hover:translate-y-[-4px] transition-transform duration-300 shadow-sm">
-                                                <span className="text-[0.6rem] font-black text-brown/40 uppercase tracking-widest">{h.tag}</span>
-                                                <h3 className="font-serif text-3xl font-black text-brown mt-1 mb-4">{h.name}</h3>
-                                                <p className="text-gray-500 text-sm leading-relaxed">{h.bio}</p>
-                                            </div>
-                                        ))}
+                                    <div className="flex gap-2">
+                                        <input 
+                                            value={query} 
+                                            onChange={(e) => setQuery(e.target.value)} 
+                                            placeholder="Ask about Tanzanian leadership..." 
+                                            className="flex-1 bg-white border border-brown/10 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-brown/20 text-ink shadow-sm" 
+                                        />
+                                        <button 
+                                            onClick={handleAskOracle} 
+                                            disabled={loading} 
+                                            className="bg-brown text-white px-8 rounded-2xl font-black text-[0.6rem] uppercase tracking-widest hover:bg-brown-soft transition-all disabled:opacity-50 shadow-md"
+                                        >
+                                            {loading ? 'Consulting...' : 'Ask'}
+                                        </button>
                                     </div>
-                                )}
-                            </div>
+                                    <div className="bg-white/90 p-8 rounded-[2rem] border border-brown/5 italic text-brown font-serif text-xl leading-relaxed shadow-inner">
+                                        {response}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeRoute === 'HEROINES' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {IWD_DATA.heroines.map((h, i) => (
+                                        <div key={i} className="bg-white p-8 rounded-3xl border border-brown/5 shadow-sm hover:shadow-md transition-shadow">
+                                            <span className="text-[0.55rem] font-black text-brown/30 uppercase tracking-[0.2em]">{h.tag}</span>
+                                            <h3 className="font-serif text-3xl font-black text-brown mt-1 mb-3">{h.name}</h3>
+                                            <p className="text-gray-500 text-sm leading-relaxed">{h.bio}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     </main>
                 </div>
