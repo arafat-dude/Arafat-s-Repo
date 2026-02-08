@@ -1,0 +1,25 @@
+{
+  "theme": "Invest in women: Accelerate progress",
+  "heroines": [
+    {
+      "name": "Mama Samia",
+      "tag": "Governance",
+      "bio": "The first female President of Tanzania, inspiring millions across the continent."
+    },
+    {
+      "name": "Gertrude Mongella",
+      "tag": "Diplomacy",
+      "bio": "Renowned 'Mama Beijing', she led the 4th World Conference on Women."
+    },
+    {
+      "name": "Julie Makani",
+      "tag": "Science",
+      "bio": "A world-leading researcher in hematology and sickle cell disease."
+    },
+    {
+      "name": "Faraja Nyalandu",
+      "tag": "Innovation",
+      "bio": "Social entrepreneur transforming Tanzanian education through digital platforms."
+    }
+  ]
+}
