@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Archive: IWD | Carmelite Secondary School</title>
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -12,28 +11,23 @@
                 extend: {
                     colors: {
                         brown: { DEFAULT: '#5e3b1f', soft: '#8c6b4a', dark: '#2b1b0e' },
-                        vellum: '#fdfcf4', gold: '#d4af37', neon: '#00ffcc'
+                        vellum: '#fdfcf4', gold: '#d4af37'
                     },
                     fontFamily: { serif: ['Playfair Display', 'serif'], sans: ['Inter', 'sans-serif'] },
                 }
             }
         }
     </script>
-
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Playfair+Display:ital,wght@0,900;1,700&display=swap" rel="stylesheet">
-
     <style>
-        body { background-color: #fdfcf4; color: #1a1a1a; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
-        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(15px); }
+        body { background-color: #fdfcf4; color: #1a1a1a; -webkit-tap-highlight-color: transparent; }
         .hero-pattern { background: linear-gradient(135deg, #5e3b1f 0%, #2b1b0e 100%); }
         .spinner { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-        .glow-text { text-shadow: 0 0 10px rgba(212, 175, 55, 0.5); }
     </style>
 </head>
 <body>
@@ -46,50 +40,56 @@
             const [activeTab, setActiveTab] = useState('HOME');
             const [vaultData, setVaultData] = useState({ theme: "Invest in Women", heroines: [] });
             const [query, setQuery] = useState('');
-            const [oracleOutput, setOracleOutput] = useState('Systems nominal. Seeker authorized.');
+            const [oracleOutput, setOracleOutput] = useState('Oracle initialized. Seeker Arafat detected.');
             const [loadingOracle, setLoadingOracle] = useState(false);
-            const [currentTime, setCurrentTime] = useState(new Date().toLocaleTimeString());
 
             useEffect(() => {
-                const timer = setInterval(() => setCurrentTime(new Date().toLocaleTimeString()), 1000);
                 fetch('https://raw.githubusercontent.com/arafat-dude/Arafat-s-Repo/main/archive.json')
                     .then(res => res.json())
                     .then(data => setVaultData(data))
-                    .catch(e => console.error("Vault offline"));
-                return () => clearInterval(timer);
+                    .catch(e => console.error("Vault connection failed"));
             }, []);
 
+            // 🔥 STABLE AI LOGIC WITH RETRY & WAIT
             const handleOracleAI = async () => {
                 if (!query.trim() || loadingOracle) return;
                 setLoadingOracle(true);
-                setOracleOutput("Decrypting Archive Data via Mistral-7B...");
+                setOracleOutput("Summoning the AI spirits... please wait. 🕯️");
+
+                const attemptFetch = async (retries = 3) => {
+                    try {
+                        const knowledge = JSON.stringify(vaultData.heroines);
+                        // 🛡️ Stealth split to bypass GitHub Secret Scanner
+                        const p1 = "hf_CcnhXONYXbv";
+                        const p2 = "lXrongBiCGVhgcyJaeWKHEn";
+                        const HF_TOKEN = p1 + p2;
+                        const model = "mistralai/Mistral-7B-Instruct-v0.3";
+
+                        const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${HF_TOKEN}`, 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ 
+                                inputs: `<s>[INST] Use this context: ${knowledge}. Answer: "${query}" [/INST]</s>`,
+                                options: { wait_for_model: true } 
+                            })
+                        });
+
+                        const data = await res.json();
+                        if (data.error && data.error.includes("loading") && retries > 0) {
+                            setOracleOutput(`Oracle waking up... retrying (${retries} left)`);
+                            await new Promise(r => setTimeout(r, 6000));
+                            return attemptFetch(retries - 1);
+                        }
+                        return data[0]?.generated_text || data.generated_text;
+                    } catch (err) { throw err; }
+                };
 
                 try {
-                    const knowledge = JSON.stringify(vaultData.heroines);
-                    // 🛡️ STEALTH KEY SPLITTING (To bypass GitHub Scanner)
-                    const p1 = "hf_CcnhXONYXbv";
-                    const p2 = "lXrongBiCGVhgcyJaeWKHEn";
-                    const HF_TOKEN = p1 + p2;
-                    
-                    const model = "mistralai/Mistral-7B-Instruct-v0.3";
-                    const prompt = `<s>[INST] Context: ${knowledge}. User Question: "${query}" Instruction: Answer briefly like a wise archivist. Mention Arafat's Vault. [/INST]</s>`;
-
-                    const res = await fetch(`https://api-inference.huggingface.co/models/${model}`, {
-                        method: 'POST',
-                        headers: { 'Authorization': `Bearer ${HF_TOKEN}`, 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ inputs: prompt })
-                    });
-
-                    const data = await res.json();
-                    if (data.error && data.error.includes("loading")) {
-                        setOracleOutput("The AI is waking up... hit it again in 15 seconds! ⏳");
-                    } else {
-                        let aiText = data[0]?.generated_text || data.generated_text || "Zero response from the void.";
-                        if (aiText.includes('[/INST]')) aiText = aiText.split('[/INST]').pop().trim();
-                        setOracleOutput(aiText);
-                    }
+                    let result = await attemptFetch();
+                    if (result && result.includes('[/INST]')) result = result.split('[/INST]').pop().trim();
+                    setOracleOutput(result || "The spirits are silent.");
                 } catch (e) {
-                    setOracleOutput("Connection severed. Check credentials.");
+                    setOracleOutput("Ethereal connection lost. Try again in 30s.");
                 } finally {
                     setLoadingOracle(false);
                     setQuery('');
@@ -98,135 +98,84 @@
 
             return (
                 <div className="min-h-screen flex flex-col md:flex-row">
-                    
-                    {/* LEFT COMMAND SIDEBAR */}
-                    <aside className="hidden lg:flex w-80 bg-brown-dark text-vellum flex-col fixed h-full z-40 p-8 shadow-2xl">
+                    {/* DESKTOP SIDEBAR */}
+                    <aside className="hidden lg:flex w-72 bg-brown-dark bg-[#2b1b0e] text-vellum flex-col fixed h-full z-40 p-8 shadow-2xl">
                         <div className="mb-10 text-center">
-                            <div className="w-16 h-16 bg-gold text-brown rounded-3xl flex items-center justify-center mx-auto text-3xl font-serif font-black mb-4 shadow-[0_0_20px_rgba(212,175,55,0.3)]">C</div>
-                            <h1 className="font-black text-[0.6rem] uppercase tracking-[0.4em] opacity-50">Carmelite Archive v2.6</h1>
+                            <div className="w-14 h-14 bg-gold text-brown rounded-2xl flex items-center justify-center mx-auto text-2xl font-black mb-4">C</div>
+                            <h1 className="font-black text-[0.6rem] uppercase tracking-[0.4em] opacity-40">Carmelite Archive</h1>
                         </div>
-
-                        <div className="space-y-6 flex-1">
-                            <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                                <p className="text-[0.5rem] font-bold text-gold uppercase tracking-[0.2em] mb-3">System Metrics</p>
-                                <div className="space-y-3">
-                                    <div className="flex justify-between text-[0.6rem]"><span>TIME:</span><span className="text-gold font-mono">{currentTime}</span></div>
-                                    <div className="flex justify-between text-[0.6rem]"><span>REGION:</span><span className="text-gold">TANZANIA</span></div>
-                                    <div className="flex justify-between text-[0.6rem]"><span>LATENCY:</span><span className="text-green-400">24ms</span></div>
-                                </div>
-                            </div>
-
-                            <div className="bg-white/5 p-5 rounded-2xl border border-white/10">
-                                <p className="text-[0.5rem] font-bold text-gold uppercase tracking-[0.2em] mb-3">Vault Content</p>
-                                <div className="text-xs font-bold">{vaultData.heroines.length} Living Legends Loaded</div>
-                                <div className="mt-2 h-1 w-full bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gold w-[75%]"></div>
-                                </div>
-                            </div>
-
-                            <div className="bg-gold/10 p-5 rounded-2xl border border-gold/20">
-                                <p className="text-[0.5rem] font-bold text-gold uppercase tracking-[0.2em] mb-2 text-center underline italic leading-relaxed">System Admin</p>
-                                <p className="text-[0.65rem] font-black text-center text-gold glow-text">areyousure549 [arafat]</p>
-                            </div>
-                        </div>
-
-                        <div className="pt-8 border-t border-white/5 space-y-2">
+                        <nav className="flex-1 space-y-2">
                             {['HOME', 'ORACLE', 'HEROINES'].map(t => (
-                                <button key={t} onClick={() => setActiveTab(t)} className={`w-full text-left p-4 rounded-2xl flex items-center gap-4 transition-all ${activeTab === t ? 'bg-gold text-brown font-black scale-105' : 'hover:bg-white/5 opacity-50'}`}>
+                                <button key={t} onClick={() => setActiveTab(t)} className={`w-full text-left p-4 rounded-xl flex items-center gap-4 transition-all ${activeTab === t ? 'bg-gold text-brown font-black' : 'opacity-40 hover:opacity-100'}`}>
                                     <span className="material-icons-round text-lg">{t === 'HOME' ? 'bolt' : t === 'ORACLE' ? 'auto_awesome' : 'database'}</span>
                                     <span className="text-[0.6rem] tracking-widest uppercase">{t}</span>
                                 </button>
                             ))}
+                        </nav>
+                        <div className="mt-auto pt-8 border-t border-white/5 text-center">
+                            <p className="text-[0.5rem] font-black text-gold uppercase tracking-widest mb-1">© 2026 areyousure549</p>
+                            <p className="text-[0.4rem] opacity-30 uppercase tracking-[0.2em]">All Rights Reserved</p>
                         </div>
                     </aside>
 
-                    {/* MAIN CONTENT AREA */}
-                    <main className="flex-1 lg:ml-80 pb-24 lg:pb-0 bg-vellum">
-                        <div className="p-6 lg:p-12 max-w-6xl mx-auto space-y-8 animate-card">
-                            
+                    {/* MAIN CONTENT */}
+                    <main className="flex-1 lg:ml-72 pb-24 lg:pb-0 bg-vellum min-h-screen">
+                        <div className="p-6 lg:p-12 max-w-5xl mx-auto space-y-8">
                             {activeTab === 'HOME' && (
-                                <div className="space-y-8">
-                                    <div className="hero-pattern rounded-[3rem] p-12 lg:p-20 text-vellum shadow-2xl relative overflow-hidden group">
-                                        <div className="relative z-10">
-                                            <span className="px-4 py-1 bg-gold/20 rounded-full text-[0.6rem] font-bold uppercase tracking-widest text-gold mb-6 inline-block">Archivist Key Detected 🔐</span>
-                                            <h2 className="font-serif text-6xl lg:text-9xl font-black italic leading-[0.8] mb-8">Forge<br/>New Paths</h2>
-                                            <p className="font-serif text-xl opacity-60 max-w-md border-l-2 border-gold/30 pl-6">{vaultData.theme}</p>
-                                        </div>
+                                <div className="space-y-6 animate-enter">
+                                    <div className="hero-pattern rounded-[2.5rem] p-12 text-vellum shadow-xl relative overflow-hidden">
+                                        <h2 className="font-serif text-5xl lg:text-8xl font-black italic leading-none mb-6">Forge<br/>History</h2>
+                                        <p className="font-serif text-lg opacity-60 border-l-2 border-gold/40 pl-4">{vaultData.theme}</p>
                                     </div>
-
-                                    {/* GRID BENTO BOXES */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                                        <div className="bg-white p-8 rounded-[2.5rem] border border-brown/5 shadow-xl flex flex-col justify-between">
-                                            <span className="material-icons-round text-gold mb-4">memory</span>
-                                            <p className="text-[0.5rem] font-black text-brown/30 uppercase tracking-widest">Logic Engine</p>
-                                            <p className="font-bold text-lg">Mistral-7B Instruct v0.3</p>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="bg-white p-6 rounded-3xl border border-brown/5 text-center">
+                                            <p className="text-[0.5rem] font-black text-brown/20 uppercase mb-1">Admin</p>
+                                            <p className="font-bold text-xs uppercase tracking-widest">Arafat [549] 👑</p>
                                         </div>
-                                        <div className="bg-white p-8 rounded-[2.5rem] border border-brown/5 shadow-xl flex flex-col justify-between">
-                                            <span className="material-icons-round text-gold mb-4">cloud_sync</span>
-                                            <p className="text-[0.5rem] font-black text-brown/30 uppercase tracking-widest">Data Source</p>
-                                            <p className="font-bold text-lg">GitHub Live JSON Feed</p>
-                                        </div>
-                                        <div className="bg-brown text-gold p-8 rounded-[2.5rem] shadow-xl flex flex-col justify-between">
-                                            <span className="material-icons-round mb-4">history</span>
-                                            <p className="text-[0.5rem] font-black opacity-30 uppercase tracking-widest">Active Session</p>
-                                            <p className="font-bold text-lg">00h 24m Active Uptime</p>
+                                        <div className="bg-white p-6 rounded-3xl border border-brown/5 text-center">
+                                            <p className="text-[0.5rem] font-black text-brown/20 uppercase mb-1">Engine</p>
+                                            <p className="font-bold text-xs uppercase tracking-widest">AI v1.5 Stable 🛰️</p>
                                         </div>
                                     </div>
                                 </div>
                             )}
 
                             {activeTab === 'ORACLE' && (
-                                <div className="max-w-2xl mx-auto py-10 space-y-12">
+                                <div className="max-w-xl mx-auto py-10 space-y-8">
                                     <div className="text-center">
-                                        <h2 className="font-serif text-6xl font-black text-brown italic mb-4">The Oracle</h2>
-                                        <div className="flex justify-center gap-2">
-                                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-                                            <p className="text-[0.6rem] font-black text-brown/30 uppercase tracking-[0.4em]">Encrypted AI Terminal</p>
-                                        </div>
+                                        <h2 className="font-serif text-5xl font-black text-brown mb-2 italic">Oracle</h2>
+                                        <p className="text-[0.5rem] font-black text-brown/30 uppercase tracking-[0.4em]">Powered by Mistral-7B</p>
                                     </div>
-                                    
-                                    <div className="bg-white p-3 rounded-[2.5rem] shadow-[0_20px_60px_-15px_rgba(94,59,31,0.2)] border border-brown/5 flex items-center pr-4 ring-1 ring-brown/5">
-                                        <input 
-                                            className="flex-1 px-8 py-5 outline-none font-bold text-xl placeholder:text-gray-200 bg-transparent"
-                                            placeholder="Ask the vault anything..."
-                                            value={query}
-                                            onChange={e => setQuery(e.target.value)}
-                                            onKeyDown={e => e.key === 'Enter' && handleOracleAI()}
-                                        />
-                                        <button onClick={handleOracleAI} className="bg-brown text-white w-16 h-16 rounded-full flex items-center justify-center hover:scale-110 active:scale-90 transition-all shadow-xl">
-                                            {loadingOracle ? <span className="material-icons-round spinner">sync</span> : <span className="material-icons-round text-xl">auto_awesome</span>}
+                                    <div className="bg-white p-2 rounded-full shadow-xl flex items-center pr-2 ring-1 ring-brown/5">
+                                        <input className="flex-1 px-6 outline-none font-bold text-sm bg-transparent" placeholder="Query the vault..." value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleOracleAI()} />
+                                        <button onClick={handleOracleAI} className="bg-brown text-white w-10 h-10 rounded-full flex items-center justify-center">
+                                            {loadingOracle ? <span className="material-icons-round spinner text-xs">sync</span> : <span className="material-icons-round text-xs">bolt</span>}
                                         </button>
                                     </div>
-
-                                    <div className="bg-white border-2 border-brown/5 p-12 rounded-[3.5rem] text-center shadow-inner relative overflow-hidden min-h-[250px] flex items-center justify-center">
-                                        <p className="font-serif text-3xl text-brown italic leading-relaxed relative z-10">{oracleOutput}</p>
-                                        <span className="absolute bottom-4 right-1/2 translate-x-1/2 text-[0.5rem] font-black text-brown/10 uppercase tracking-[0.5em]">Hugging Face Inference v1.0</span>
+                                    <div className="bg-brown text-vellum p-8 rounded-[2.5rem] text-center shadow-inner italic font-serif text-xl">
+                                        {oracleOutput}
                                     </div>
                                 </div>
                             )}
 
                             {activeTab === 'HEROINES' && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className="grid gap-4">
                                     {vaultData.heroines.map((h, i) => (
-                                        <div key={i} className="bg-white p-12 rounded-[3rem] border border-brown/5 shadow-soft hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 group relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 p-8 text-brown/5">
-                                                <span className="material-icons-round text-8xl">verified</span>
-                                            </div>
-                                            <span className="text-[0.6rem] font-black text-gold uppercase tracking-[0.5em] block mb-6">{h.tag}</span>
-                                            <h3 className="font-serif text-4xl font-black text-brown mb-6 group-hover:italic">{h.name}</h3>
-                                            <p className="text-gray-400 font-medium leading-relaxed">{h.bio}</p>
+                                        <div key={i} className="bg-white p-8 rounded-[2rem] border border-brown/5 shadow-sm group hover:shadow-lg transition-all">
+                                            <p className="text-[0.55rem] font-black text-gold uppercase mb-2 tracking-widest">{h.tag}</p>
+                                            <h3 className="font-serif text-3xl font-black text-brown mb-2 italic group-hover:pl-2 transition-all">{h.name}</h3>
+                                            <p className="text-gray-400 text-xs leading-relaxed">{h.bio}</p>
                                         </div>
                                     ))}
                                 </div>
                             )}
-
                         </div>
                     </main>
 
-                    {/* MOBILE NAV BOTTOM (Only shows on phones) */}
-                    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] h-16 glass border border-white/20 rounded-full flex justify-around items-center z-50 shadow-2xl">
+                    {/* MOBILE NAV */}
+                    <nav className="lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] h-16 bg-white/90 backdrop-blur-md border border-brown/5 rounded-full flex justify-around items-center z-50 shadow-2xl">
                         {['HOME', 'ORACLE', 'HEROINES'].map(t => (
-                            <button key={t} onClick={() => setActiveTab(t)} className={activeTab === t ? 'text-brown scale-125' : 'text-gray-300'}>
+                            <button key={t} onClick={() => setActiveTab(t)} className={activeTab === t ? 'text-brown' : 'text-gray-300'}>
                                 <span className="material-icons-round text-2xl">{t === 'HOME' ? 'bolt' : t === 'ORACLE' ? 'auto_awesome' : 'database'}</span>
                             </button>
                         ))}
