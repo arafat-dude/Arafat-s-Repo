@@ -22,4 +22,156 @@
 
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script src="https://unpkg.
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <style>
+        body { background-color: #fdfcf4; color: #1a1a1a; overflow: hidden; }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #5e3b1f33; border-radius: 10px; }
+        .hero-gradient { background: linear-gradient(135deg, #5e3b1f 0%, #3d2614 100%); }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        const IWD_DATA = {
+            theme: "Invest in women: Accelerate progress",
+            heroines: [
+                { name: "Mama Samia", tag: "Governance", bio: "The first female President of Tanzania, inspiring millions." },
+                { name: "Gertrude Mongella", tag: "Diplomacy", bio: "Renowned 'Mama Beijing', led the 4th World Conference on Women." },
+                { name: "Julie Makani", tag: "Science", bio: "A world-leading researcher in hematology." }
+            ]
+        };
+
+        const App = () => {
+            const [activeRoute, setActiveRoute] = useState('HOME');
+            const [query, setQuery] = useState('');
+            const [response, setResponse] = useState('Seek wisdom from the digital archive...');
+            const [loading, setLoading] = useState(false);
+
+            // ⚡ THE RAW STEEL FUNCTION (No Libraries) ⚡
+            const handleAskOracle = async () => {
+                if (!query.trim() || loading) return;
+                setLoading(true);
+                setResponse('The Oracle is consulting the digital vellum...');
+                
+                try {
+                    const API_KEY = "AIzaSyDBpMVOvrMMsrsn7rH4Mt4jdthXZYEap-Q"; // 🔑 Your Key
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+                    
+                    const payload = {
+                        contents: [{
+                            parts: [{
+                                text: `You are the Carmelite Archive Oracle. Answer this question: "${query}". Keep the tone scholarly, wise, and empowering. Mention Tanzanian context if relevant. Keep it under 60 words.`
+                            }]
+                        }]
+                    };
+
+                    const res = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+                    
+                    if (data.candidates && data.candidates[0].content) {
+                        setResponse(data.candidates[0].content.parts[0].text);
+                    } else {
+                        setResponse("The Oracle is silent. (Rate limit or connection error).");
+                    }
+
+                } catch (e) {
+                    console.error(e);
+                    setResponse('The connection to the archive flickered. Try again later.');
+                } finally {
+                    setLoading(false);
+                    setQuery('');
+                }
+            };
+
+            return (
+                <div className="flex h-screen w-full flex-col md:flex-row overflow-hidden font-sans">
+                    <aside className="w-full md:w-64 bg-white border-r border-brown/10 flex flex-col z-50">
+                        <div className="p-6 text-center border-b border-gray-100">
+                            <div className="w-10 h-10 border-2 border-brown rounded-full flex items-center justify-center mx-auto mb-2 bg-cream text-brown font-serif font-black shadow-sm">C</div>
+                            <h2 className="text-brown font-extrabold text-[0.6rem] uppercase tracking-widest">Carmelite Archive</h2>
+                        </div>
+                        <nav className="flex-1 p-4 flex md:flex-col justify-around gap-2">
+                            {['HOME', 'ORACLE', 'HEROINES'].map(id => (
+                                <button 
+                                    key={id} 
+                                    onClick={() => setActiveRoute(id)} 
+                                    className={`px-4 py-3 rounded-xl text-[0.7rem] font-black tracking-widest uppercase transition-all duration-300 ${activeRoute === id ? 'bg-brown text-white shadow-lg translate-x-1' : 'text-gray-400 hover:bg-cream hover:text-brown'}`}
+                                >
+                                    {id}
+                                </button>
+                            ))}
+                        </nav>
+                        <div className="p-4 text-center border-t border-gray-100 hidden md:block text-[0.5rem] font-black text-gray-300 tracking-[0.2em]">© AREYOUSURE549</div>
+                    </aside>
+
+                    <main className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar bg-vellum relative">
+                        <div className="max-w-3xl mx-auto animate-fade-in">
+                            {activeRoute === 'HOME' && (
+                                <div className="hero-gradient text-cream p-12 rounded-[2.5rem] shadow-2xl relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
+                                    <h1 className="font-serif text-5xl md:text-6xl font-black mb-4 leading-none">Leading<br/>By Truth</h1>
+                                    <p className="italic opacity-80 border-l-2 border-cream/30 pl-4 text-lg">{IWD_DATA.theme}</p>
+                                </div>
+                            )}
+
+                            {activeRoute === 'ORACLE' && (
+                                <div className="space-y-6">
+                                    <div className="border-b border-brown/10 pb-4">
+                                        <h2 className="font-serif text-3xl font-black text-brown">Consult the Oracle</h2>
+                                        <p className="text-xs text-brown/50 font-bold uppercase tracking-widest mt-1">Powered by Gemini AI</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        <input 
+                                            value={query} 
+                                            onChange={(e) => setQuery(e.target.value)} 
+                                            placeholder="Ask about Tanzanian leadership..." 
+                                            className="flex-1 bg-white border border-brown/10 rounded-2xl px-5 py-4 outline-none focus:ring-2 focus:ring-brown/20 text-ink shadow-sm" 
+                                        />
+                                        <button 
+                                            onClick={handleAskOracle} 
+                                            disabled={loading} 
+                                            className="bg-brown text-white px-8 rounded-2xl font-black text-[0.6rem] uppercase tracking-widest hover:bg-brown-soft transition-all disabled:opacity-50 shadow-md"
+                                        >
+                                            {loading ? '...' : 'Ask'}
+                                        </button>
+                                    </div>
+                                    <div className="bg-white/90 p-8 rounded-[2rem] border border-brown/5 italic text-brown font-serif text-xl leading-relaxed shadow-inner min-h-[100px]">
+                                        {response}
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeRoute === 'HEROINES' && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {IWD_DATA.heroines.map((h, i) => (
+                                        <div key={i} className="bg-white p-8 rounded-3xl border border-brown/5 shadow-sm hover:shadow-md transition-shadow">
+                                            <span className="text-[0.55rem] font-black text-brown/30 uppercase tracking-[0.2em]">{h.tag}</span>
+                                            <h3 className="font-serif text-3xl font-black text-brown mt-1 mb-3">{h.name}</h3>
+                                            <p className="text-gray-500 text-sm leading-relaxed">{h.bio}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
